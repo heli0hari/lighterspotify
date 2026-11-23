@@ -154,7 +154,7 @@
                 <TextBlock Text="Device name" Style="{StaticResource FieldLabel}"/>
                 <TextBox x:Name="DeviceNameBox" Style="{StaticResource DarkTextBox}"/>
 
-                <CheckBox x:Name="MediaKeysCheck" Content="Use keyboard media keys" Foreground="{StaticResource TextMain}"
+                <CheckBox x:Name="MediaKeysCheck" Content="Capture media keys (blocks them in other apps)" Foreground="{StaticResource TextMain}"
                           FontSize="12" Margin="0,12,0,0"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">

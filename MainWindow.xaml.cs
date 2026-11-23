@@ -28,6 +28,7 @@ namespace LighterSpotify
         SpotifyApi api;
         LibrespotHost librespot = new LibrespotHost();
         MediaKeys mediaKeys = new MediaKeys();
+        MediaSession mediaSession = new MediaSession();
         System.Windows.Forms.NotifyIcon tray;
 
         DispatcherTimer pollTimer = new DispatcherTimer();
@@ -92,10 +93,16 @@ namespace LighterSpotify
 
             CreateTray();
 
+            mediaSession.PlayPressed += async () => await SetPlayingAsync(true);
+            mediaSession.PausePressed += async () => await SetPlayingAsync(false);
+            mediaSession.NextPressed += async () => await RunCommandAsync(() => api.NextAsync());
+            mediaSession.PreviousPressed += async () => await RunCommandAsync(() => api.PreviousAsync());
+            mediaSession.Start(hwnd);
+
             mediaKeys.PlayPausePressed += async () => await TogglePlayAsync();
             mediaKeys.NextPressed += async () => await RunCommandAsync(() => api.NextAsync());
             mediaKeys.PreviousPressed += async () => await RunCommandAsync(() => api.PreviousAsync());
-            if (settings.UseMediaKeys) mediaKeys.Register(this);
+            if (settings.CaptureMediaKeys) mediaKeys.Register(this);
 
             await ShowStartScreenAsync();
         }
@@ -134,22 +141,30 @@ namespace LighterSpotify
 
         // ---------- Polling ----------
 
+        // Polls every 6 s while visible, 15 s while hidden (keeps the Windows media flyout up to date)
         void UpdateTimers()
         {
-            bool active = playerStarted && IsVisible && WindowState != WindowState.Minimized;
-            if (active)
-            {
-                if (!pollTimer.IsEnabled)
-                {
-                    pollTimer.Start();
-                    tickTimer.Start();
-                    _ = RefreshNowAsync();
-                }
-            }
-            else
+            if (!playerStarted)
             {
                 pollTimer.Stop();
                 tickTimer.Stop();
+                return;
+            }
+
+            bool visible = IsVisible && WindowState != WindowState.Minimized;
+            TimeSpan interval = TimeSpan.FromSeconds(visible ? 6 : 15);
+            bool becameVisible = visible && pollTimer.Interval != interval;
+            pollTimer.Interval = interval;
+
+            if (!pollTimer.IsEnabled)
+            {
+                pollTimer.Start();
+                tickTimer.Start();
+                _ = RefreshNowAsync();
+            }
+            else if (becameVisible)
+            {
+                _ = RefreshNowAsync();
             }
         }
 
@@ -171,6 +186,7 @@ namespace LighterSpotify
             current = state;
             stateTime = DateTime.Now;
             ShowState();
+            mediaSession.Update(current);
         }
 
         void Tick(object sender, EventArgs e)
@@ -230,6 +246,7 @@ namespace LighterSpotify
 
         void ShowLoggedOut()
         {
+            mediaSession.Update(null);
             playerStarted = false;
             UpdateTimers();
             current = null;
@@ -322,21 +339,28 @@ namespace LighterSpotify
 
         async Task TogglePlayAsync()
         {
+            bool isPlaying = current != null && current.HasItem && current.IsPlaying;
+            await SetPlayingAsync(!isPlaying);
+        }
+
+        async Task SetPlayingAsync(bool play)
+        {
             if (api == null) return;
             if (current == null || !current.HasItem || current.DeviceId == null)
             {
-                await PlayOnThisPcAsync();
+                if (play) await PlayOnThisPcAsync();
                 return;
             }
+            if (current.IsPlaying == play) return;
 
-            bool wasPlaying = current.IsPlaying;
-            current.IsPlaying = !wasPlaying;
+            current.IsPlaying = play;
             current.ProgressMs = (int)ProgressSlider.Value;
             stateTime = DateTime.Now;
-            SetPlayIcon(!wasPlaying);
+            SetPlayIcon(play);
+            mediaSession.Update(current);
 
-            if (wasPlaying) await RunCommandAsync(() => api.PauseAsync());
-            else await RunCommandAsync(() => api.ResumeAsync());
+            if (play) await RunCommandAsync(() => api.ResumeAsync());
+            else await RunCommandAsync(() => api.PauseAsync());
         }
 
         async Task PlayOnThisPcAsync()
@@ -501,7 +525,7 @@ namespace LighterSpotify
             ClientIdBox.Text = settings.ClientId;
             LibrespotPathBox.Text = settings.LibrespotPath;
             DeviceNameBox.Text = settings.DeviceName;
-            MediaKeysCheck.IsChecked = settings.UseMediaKeys;
+            MediaKeysCheck.IsChecked = settings.CaptureMediaKeys;
             SearchPanel.Visibility = Visibility.Collapsed;
             SearchToggle.Foreground = (Brush)FindResource("TextSub");
             SettingsPanel.Visibility = Visibility.Visible;
@@ -527,10 +551,10 @@ namespace LighterSpotify
             settings.ClientId = clientId;
             settings.LibrespotPath = path;
             settings.DeviceName = deviceName;
-            settings.UseMediaKeys = MediaKeysCheck.IsChecked == true;
+            settings.CaptureMediaKeys = MediaKeysCheck.IsChecked == true;
             settings.Save();
 
-            if (settings.UseMediaKeys) mediaKeys.Register(this);
+            if (settings.CaptureMediaKeys) mediaKeys.Register(this);
             else mediaKeys.Unregister();
 
             SettingsPanel.Visibility = Visibility.Collapsed;
@@ -651,6 +675,7 @@ namespace LighterSpotify
             pollTimer.Stop();
             tickTimer.Stop();
             mediaKeys.Unregister();
+            mediaSession.Stop();
             librespot.Stop();
 
             if (tray != null)

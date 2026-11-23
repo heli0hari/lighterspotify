@@ -20,7 +20,7 @@ namespace LighterSpotify
         public string LibrespotPath { get; set; } = "";
         public string DeviceName { get; set; } = "LighterSpotify";
         public int Bitrate { get; set; } = 160;
-        public bool UseMediaKeys { get; set; } = true;
+        public bool CaptureMediaKeys { get; set; } = false;
         public bool AlwaysOnTop { get; set; } = false;
         public bool HasWindowPosition { get; set; } = false;
         public double WindowLeft { get; set; }

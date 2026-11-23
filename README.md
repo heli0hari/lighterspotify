@@ -12,7 +12,7 @@ Total memory use is roughly **60–80 MB** (the WPF window plus librespot), comp
 
 ## Requirements
 
-- Windows 10 or 11
+- Windows 10 (version 1809 or later) or Windows 11
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) to build the app, or only the .NET 8 Desktop Runtime to run a build
 - **Spotify Premium.** It's required both by librespot and by Spotify's Development Mode rules for API apps.
 
@@ -69,14 +69,14 @@ dotnet publish -c Release -r win-x64 --self-contained false -o publish
 | Speaker icon | Move playback to this PC |
 | Pin | Keep the window on top of others |
 | Hide (–) | Hide to the system tray. Left-click the tray icon to show it again. |
-| Media keys | Play/pause, next and previous. You can turn this off in Settings. |
+| Windows media flyout | The app appears in the speaker/volume flyout and on the lock screen, with play/pause, next and previous. Keyboard media keys work through it too. |
 
 Drag anywhere on the window to move it.
 
 ## Notes
 
-- **Media keys:** when they're on, the app captures them, so other apps (for example YouTube in a browser) won't receive them. Untick the option in Settings if that's a problem.
-- **Polling:** the app checks Spotify's player state every 6 s, and only while the window is visible. Between checks, the progress bar moves on a local timer. This keeps the app under Spotify's Development Mode request limits.
+- **Media keys:** normally they reach the app through the Windows media flyout, so other apps keep working too. If Windows sends them to a different player, tick **Capture media keys** in Settings. That forces them to this app, but blocks them in other apps (for example YouTube in a browser).
+- **Polling:** the app checks Spotify's player state every 6 s while the window is visible, and every 15 s while it's hidden in the tray (to keep the Windows flyout current). Between checks, the progress bar moves on a local timer. This keeps the app under Spotify's Development Mode request limits.
 - **Search:** Development Mode returns at most 10 results per request, so use **Load more** for further results.
 - **No disk cache:** librespot runs with `--disable-audio-cache`, so nothing is stored offline.
 - **Your data:** settings, the encrypted login token (protected with Windows DPAPI), the librespot login and `error.log` are stored in `%AppData%\LighterSpotify`.
