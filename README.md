@@ -74,6 +74,16 @@ dotnet publish -c Release -r win-x64 --self-contained false -o publish
 
 Drag anywhere on the window to move it.
 
+## Start with Windows
+
+Tick **Start with Windows** in Settings and click **Save**. The app then starts hidden in the tray when you log in. It uses your account's Run registry key, so no admin rights are needed.
+
+There's no installer, so the app lives in the `publish` folder. To add it to the Start menu, run this once:
+```powershell
+$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\LighterSpotify.lnk")
+$s.TargetPath = "$HOME\lighterspotify\publish\LighterSpotify.exe"; $s.Save()
+```
+
 ## Notes
 
 - **Media keys:** normally they reach the app through the Windows media flyout, so other apps keep working too. If Windows sends them to a different player, tick **Capture media keys** in Settings. That forces them to this app, but blocks them in other apps (for example YouTube in a browser).

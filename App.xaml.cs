@@ -31,7 +31,9 @@ namespace LighterSpotify
             };
 
             base.OnStartup(e);
-            MainWindow window = new MainWindow();
+            bool startHidden = Array.IndexOf(e.Args, "--minimized") >= 0;
+            MainWindow window = new MainWindow(startHidden);
+            if (startHidden) window.WindowState = WindowState.Minimized;
             window.Show();
         }
     }

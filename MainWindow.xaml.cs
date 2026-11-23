@@ -53,8 +53,11 @@ namespace LighterSpotify
         string lastQuery = "";
         int searchOffset;
 
-        public MainWindow()
+        bool startHidden;
+
+        public MainWindow(bool startHidden)
         {
+            this.startHidden = startHidden;
             InitializeComponent();
             settings = Settings.Load();
             ResultsList.ItemsSource = results;
@@ -105,6 +108,16 @@ namespace LighterSpotify
 
             CreateTray();
             ApplyPinState();
+
+            // Started with Windows: go straight to the tray
+            if (startHidden)
+            {
+                Hide();
+                WindowState = WindowState.Normal;
+            }
+
+            // Keep the startup entry pointing at this exe, in case it moved
+            if (Autostart.IsEnabled()) Autostart.Enable();
 
             mediaSession.PlayPressed += async () => await SetPlayingAsync(true);
             mediaSession.PausePressed += async () => await SetPlayingAsync(false);
@@ -589,6 +602,7 @@ namespace LighterSpotify
             LibrespotPathBox.Text = settings.LibrespotPath;
             DeviceNameBox.Text = settings.DeviceName;
             MediaKeysCheck.IsChecked = settings.CaptureMediaKeys;
+            StartupCheck.IsChecked = Autostart.IsEnabled();
             SearchPanel.Visibility = Visibility.Collapsed;
             SearchToggle.Foreground = (Brush)FindResource("TextSub");
             SettingsPanel.Visibility = Visibility.Visible;
@@ -616,6 +630,9 @@ namespace LighterSpotify
             settings.DeviceName = deviceName;
             settings.CaptureMediaKeys = MediaKeysCheck.IsChecked == true;
             settings.Save();
+
+            if (StartupCheck.IsChecked == true) Autostart.Enable();
+            else Autostart.Disable();
 
             if (settings.CaptureMediaKeys) mediaKeys.Register(this);
             else mediaKeys.Unregister();
