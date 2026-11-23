@@ -3,17 +3,17 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LighterSpotify" Width="380" SizeToContent="Height"
         WindowStyle="None" ResizeMode="NoResize"
-        Background="{StaticResource Bg}" Foreground="{StaticResource TextMain}"
+        Background="Transparent" Foreground="{StaticResource TextMain}"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         Loaded="Window_Loaded" Closing="Window_Closing"
         MouseEnter="Window_MouseEnter" MouseLeave="Window_MouseLeave">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" GlassFrameThickness="0" ResizeBorderThickness="0" UseAeroCaptionButtons="False"/>
+        <WindowChrome CaptionHeight="0" GlassFrameThickness="-1" ResizeBorderThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
-    <Border BorderBrush="{StaticResource Line}" BorderThickness="1" Background="{StaticResource Bg}"
+    <Border x:Name="RootBorder" BorderBrush="{StaticResource Line}" BorderThickness="1"
             MouseLeftButtonDown="Root_MouseLeftButtonDown">
         <StackPanel Margin="14,12,14,12">
 

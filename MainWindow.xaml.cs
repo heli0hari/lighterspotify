@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -36,10 +37,8 @@ namespace LighterSpotify
         DispatcherTimer pollTimer = new DispatcherTimer();
         DispatcherTimer tickTimer = new DispatcherTimer();
         DispatcherTimer statusTimer = new DispatcherTimer();
-        DispatcherTimer fadeTimer = new DispatcherTimer();
         IntPtr hwnd;
-        int currentAlpha = 255;
-        int targetAlpha = 255;
+        SolidColorBrush tintBrush = new SolidColorBrush(Color.FromRgb(0x10, 0x10, 0x10));
 
         PlaybackState current;
         DateTime stateTime;
@@ -84,8 +83,7 @@ namespace LighterSpotify
                 WindowStartupLocation = WindowStartupLocation.CenterScreen;
             }
 
-            fadeTimer.Interval = TimeSpan.FromMilliseconds(16);
-            fadeTimer.Tick += FadeTick;
+            RootBorder.Background = tintBrush;
 
             Topmost = settings.AlwaysOnTop;
 
@@ -98,6 +96,12 @@ namespace LighterSpotify
             hwnd = new WindowInteropHelper(this).Handle;
             int roundCorners = 2;
             DwmSetWindowAttribute(hwnd, 33, ref roundCorners, sizeof(int));
+            int darkMode = 1;
+            DwmSetWindowAttribute(hwnd, 20, ref darkMode, sizeof(int));
+
+            // Let the glass show through: WPF must clear to transparent instead of a solid colour
+            HwndSource source = HwndSource.FromHwnd(hwnd);
+            if (source != null) source.CompositionTarget.BackgroundColor = Colors.Transparent;
 
             CreateTray();
             ApplyPinState();
@@ -326,7 +330,7 @@ namespace LighterSpotify
             // Unpinning always unlocks, since the lock button only shows while pinned
             if (!Topmost) settings.Locked = false;
             ApplyLockState();
-            UpdateTargetAlpha();
+            UpdateGlass();
         }
 
         void ApplyLockState()
@@ -340,33 +344,29 @@ namespace LighterSpotify
             LockButton.Foreground = locked ? (Brush)FindResource("Accent") : (Brush)FindResource("TextSub");
         }
 
-        // Pinned: fade to PinnedOpacityPercent, back to full when the mouse is over the window
-        void UpdateTargetAlpha()
+        // Pinned: frosted glass (blur + light tint), denser tint while the mouse is over it
+        void UpdateGlass()
         {
             if (hwnd == IntPtr.Zero) return;
-            bool faded = Topmost && !IsMouseOver;
-            int percent = Math.Max(20, Math.Min(100, settings.PinnedOpacityPercent));
-            targetAlpha = faded ? percent * 255 / 100 : 255;
-            if (!fadeTimer.IsEnabled) fadeTimer.Start();
-        }
 
-        void FadeTick(object sender, EventArgs e)
-        {
-            const int step = 24;
-            if (currentAlpha < targetAlpha) currentAlpha = Math.Min(targetAlpha, currentAlpha + step);
-            else currentAlpha = Math.Max(targetAlpha, currentAlpha - step);
+            bool glass = Topmost;
+            Glass.Set(hwnd, glass);
+            RootBorder.BorderBrush = glass ? new SolidColorBrush(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)) : (Brush)FindResource("Line");
 
-            WindowAlpha.Set(hwnd, (byte)currentAlpha);
-
-            if (currentAlpha == targetAlpha)
+            double tint = 1.0;
+            if (glass)
             {
-                fadeTimer.Stop();
-                if (!Topmost && currentAlpha == 255) WindowAlpha.Clear(hwnd);
+                int percent = Math.Max(10, Math.Min(100, settings.GlassTintPercent));
+                tint = IsMouseOver ? 0.85 : percent / 100.0;
             }
+
+            Color target = Color.FromArgb((byte)(tint * 255), 0x10, 0x10, 0x10);
+            ColorAnimation animation = new ColorAnimation(target, TimeSpan.FromMilliseconds(180));
+            tintBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
-        void Window_MouseEnter(object sender, MouseEventArgs e) { UpdateTargetAlpha(); }
-        void Window_MouseLeave(object sender, MouseEventArgs e) { UpdateTargetAlpha(); }
+        void Window_MouseEnter(object sender, MouseEventArgs e) { UpdateGlass(); }
+        void Window_MouseLeave(object sender, MouseEventArgs e) { UpdateGlass(); }
 
         void Lock_Click(object sender, RoutedEventArgs e)
         {
@@ -738,7 +738,6 @@ namespace LighterSpotify
 
             pollTimer.Stop();
             tickTimer.Stop();
-            fadeTimer.Stop();
             mediaKeys.Unregister();
             mediaSession.Stop();
             librespot.Stop();
