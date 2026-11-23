@@ -22,6 +22,8 @@ namespace LighterSpotify
         public int Bitrate { get; set; } = 160;
         public bool CaptureMediaKeys { get; set; } = false;
         public bool AlwaysOnTop { get; set; } = false;
+        public bool Locked { get; set; } = false;
+        public int PinnedOpacityPercent { get; set; } = 65;
         public bool HasWindowPosition { get; set; } = false;
         public double WindowLeft { get; set; }
         public double WindowTop { get; set; }

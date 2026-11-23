@@ -18,10 +18,12 @@ namespace LighterSpotify
         [DllImport("dwmapi.dll")]
         static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
-        const string PlayGlyph = "";
-        const string PauseGlyph = "";
-        const string PinGlyph = "";
-        const string UnpinGlyph = "";
+        const string PlayGlyph = "\uE768";
+        const string PauseGlyph = "\uE769";
+        const string PinGlyph = "\uE718";
+        const string UnpinGlyph = "\uE77A";
+        const string LockGlyph = "\uE72E";
+        const string UnlockGlyph = "\uE785";
 
         Settings settings;
         SpotifyAuth auth;
@@ -34,6 +36,10 @@ namespace LighterSpotify
         DispatcherTimer pollTimer = new DispatcherTimer();
         DispatcherTimer tickTimer = new DispatcherTimer();
         DispatcherTimer statusTimer = new DispatcherTimer();
+        DispatcherTimer fadeTimer = new DispatcherTimer();
+        IntPtr hwnd;
+        int currentAlpha = 255;
+        int targetAlpha = 255;
 
         PlaybackState current;
         DateTime stateTime;
@@ -78,8 +84,10 @@ namespace LighterSpotify
                 WindowStartupLocation = WindowStartupLocation.CenterScreen;
             }
 
+            fadeTimer.Interval = TimeSpan.FromMilliseconds(16);
+            fadeTimer.Tick += FadeTick;
+
             Topmost = settings.AlwaysOnTop;
-            UpdatePinIcon();
 
             IsVisibleChanged += (s, e) => UpdateTimers();
             StateChanged += (s, e) => UpdateTimers();
@@ -87,11 +95,12 @@ namespace LighterSpotify
 
         async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            IntPtr hwnd = new WindowInteropHelper(this).Handle;
+            hwnd = new WindowInteropHelper(this).Handle;
             int roundCorners = 2;
             DwmSetWindowAttribute(hwnd, 33, ref roundCorners, sizeof(int));
 
             CreateTray();
+            ApplyPinState();
 
             mediaSession.PlayPressed += async () => await SetPlayingAsync(true);
             mediaSession.PausePressed += async () => await SetPlayingAsync(false);
@@ -306,10 +315,64 @@ namespace LighterSpotify
             statusTimer.Start();
         }
 
-        void UpdatePinIcon()
+        // ---------- Pin, lock & transparency ----------
+
+        void ApplyPinState()
         {
             PinButton.Content = Topmost ? UnpinGlyph : PinGlyph;
             PinButton.Foreground = Topmost ? (Brush)FindResource("Accent") : (Brush)FindResource("TextSub");
+            LockButton.Visibility = Topmost ? Visibility.Visible : Visibility.Collapsed;
+
+            // Unpinning always unlocks, since the lock button only shows while pinned
+            if (!Topmost) settings.Locked = false;
+            ApplyLockState();
+            UpdateTargetAlpha();
+        }
+
+        void ApplyLockState()
+        {
+            bool locked = settings.Locked;
+            ProgressRow.IsEnabled = !locked;
+            ControlsRow.IsEnabled = !locked;
+            SearchPanel.IsEnabled = !locked;
+            LockButton.Content = locked ? LockGlyph : UnlockGlyph;
+            LockButton.ToolTip = locked ? "Unlock controls" : "Lock controls";
+            LockButton.Foreground = locked ? (Brush)FindResource("Accent") : (Brush)FindResource("TextSub");
+        }
+
+        // Pinned: fade to PinnedOpacityPercent, back to full when the mouse is over the window
+        void UpdateTargetAlpha()
+        {
+            if (hwnd == IntPtr.Zero) return;
+            bool faded = Topmost && !IsMouseOver;
+            int percent = Math.Max(20, Math.Min(100, settings.PinnedOpacityPercent));
+            targetAlpha = faded ? percent * 255 / 100 : 255;
+            if (!fadeTimer.IsEnabled) fadeTimer.Start();
+        }
+
+        void FadeTick(object sender, EventArgs e)
+        {
+            const int step = 24;
+            if (currentAlpha < targetAlpha) currentAlpha = Math.Min(targetAlpha, currentAlpha + step);
+            else currentAlpha = Math.Max(targetAlpha, currentAlpha - step);
+
+            WindowAlpha.Set(hwnd, (byte)currentAlpha);
+
+            if (currentAlpha == targetAlpha)
+            {
+                fadeTimer.Stop();
+                if (!Topmost && currentAlpha == 255) WindowAlpha.Clear(hwnd);
+            }
+        }
+
+        void Window_MouseEnter(object sender, MouseEventArgs e) { UpdateTargetAlpha(); }
+        void Window_MouseLeave(object sender, MouseEventArgs e) { UpdateTargetAlpha(); }
+
+        void Lock_Click(object sender, RoutedEventArgs e)
+        {
+            settings.Locked = !settings.Locked;
+            settings.Save();
+            ApplyLockState();
         }
 
         static string FormatTime(int ms)
@@ -600,6 +663,7 @@ namespace LighterSpotify
 
         void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (settings.Locked) return;
             if (e.ButtonState == MouseButtonState.Pressed) DragMove();
         }
 
@@ -607,8 +671,8 @@ namespace LighterSpotify
         {
             Topmost = !Topmost;
             settings.AlwaysOnTop = Topmost;
+            ApplyPinState();
             settings.Save();
-            UpdatePinIcon();
         }
 
         void Hide_Click(object sender, RoutedEventArgs e)
@@ -674,6 +738,7 @@ namespace LighterSpotify
 
             pollTimer.Stop();
             tickTimer.Stop();
+            fadeTimer.Stop();
             mediaKeys.Unregister();
             mediaSession.Stop();
             librespot.Stop();

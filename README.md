@@ -67,7 +67,8 @@ dotnet publish -c Release -r win-x64 --self-contained false -o publish
 |---|---|
 | Search icon | Search songs. Click a result to play it; press **+** to add it to the queue. |
 | Speaker icon | Move playback to this PC |
-| Pin | Keep the window on top of others |
+| Pin | Keep the window on top of others. While pinned, it fades to 65% opacity and returns to full when you hover over it. You can change the level with `PinnedOpacityPercent` in `settings.json`. |
+| Lock (only while pinned) | Disables the playback controls, seek bar, search and dragging, so stray clicks don't do anything. Media keys, the Windows flyout and the tray menu still work. Unpinning also unlocks. |
 | Hide (–) | Hide to the system tray. Left-click the tray icon to show it again. |
 | Windows media flyout | The app appears in the speaker/volume flyout and on the lock screen, with play/pause, next and previous. Keyboard media keys work through it too. |
 

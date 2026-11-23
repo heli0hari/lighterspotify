@@ -6,7 +6,8 @@
         Background="{StaticResource Bg}" Foreground="{StaticResource TextMain}"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
-        Loaded="Window_Loaded" Closing="Window_Closing">
+        Loaded="Window_Loaded" Closing="Window_Closing"
+        MouseEnter="Window_MouseEnter" MouseLeave="Window_MouseLeave">
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0" GlassFrameThickness="0" ResizeBorderThickness="0" UseAeroCaptionButtons="False"/>
@@ -36,6 +37,7 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button x:Name="LockButton" Style="{StaticResource IconButton}" Content="&#xE785;" ToolTip="Lock controls" Click="Lock_Click" Visibility="Collapsed"/>
                     <Button x:Name="PinButton" Style="{StaticResource IconButton}" Content="&#xE718;" ToolTip="Always on top" Click="Pin_Click"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE713;" ToolTip="Settings" Click="Settings_Click"/>
                     <Button Style="{StaticResource IconButton}" Content="&#xE921;" ToolTip="Hide to tray" Click="Hide_Click"/>
@@ -44,7 +46,7 @@
             </Grid>
 
             <!-- Progress -->
-            <Grid Margin="0,12,0,0">
+            <Grid x:Name="ProgressRow" Margin="0,12,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="34"/>
                     <ColumnDefinition Width="*"/>
@@ -57,7 +59,7 @@
             </Grid>
 
             <!-- Controls -->
-            <Grid Margin="0,6,0,0">
+            <Grid x:Name="ControlsRow" Margin="0,6,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
