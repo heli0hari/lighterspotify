@@ -25,14 +25,27 @@ Total memory use is roughly **60–80 MB** (the WPF window plus librespot), comp
 4. Save, then copy the **Client ID**.
 
 ### 2. Get librespot.exe
-librespot doesn't publish Windows builds, so you build it once with Rust:
+librespot doesn't publish Windows builds, so you build it once with Rust (tested with librespot v0.8.0).
 
-```powershell
-winget install Rustlang.Rustup
-cargo install librespot --locked
-```
+1. **Install Rust and the C++ build tools.** Rust needs the C++ tools for the MSVC linker (`link.exe`); approve the admin prompt if one appears.
+   ```powershell
+   winget install Rustlang.Rustup
+   winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+   ```
+2. **Close PowerShell and open a new window**, so the new PATH loads. Check with `cargo --version`. If there's no default toolchain, run `rustup default stable-msvc`.
+3. **Build librespot.** This takes about 5–10 minutes:
+   ```powershell
+   cargo install librespot --locked
+   ```
 
-This puts `librespot.exe` in `%USERPROFILE%\.cargo\bin`, where the app finds it automatically. If the build asks for missing tools, install **Visual Studio Build Tools (Desktop C++)**, and CMake/NASM if it asks for those too.
+This puts `librespot.exe` in `%USERPROFILE%\.cargo\bin`, where the app finds it automatically.
+
+**Troubleshooting**
+
+| Error | Fix |
+|---|---|
+| `cargo` is not recognized | Open a new PowerShell window. |
+| `linker 'link.exe' not found` | The C++ build tools are missing. Run the Build Tools command above. If winget says Build Tools is already installed, open **Visual Studio Installer** → **Modify** → tick **Desktop development with C++** → **Modify**. Then open a new window and build again. |
 
 ### 3. Build and run the app
 ```powershell
