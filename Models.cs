@@ -12,6 +12,7 @@ namespace LighterSpotify
         public string DeviceId;
         public string DeviceName;
         public int Volume = -1;
+        public bool SupportsVolume = true;
     }
 
     public class TrackItem

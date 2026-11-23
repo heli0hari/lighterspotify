@@ -72,6 +72,9 @@ namespace LighterSpotify
                     {
                         state.DeviceId = GetString(device, "id");
                         state.DeviceName = GetString(device, "name");
+                        JsonElement supportsVolume;
+                        if (device.TryGetProperty("supports_volume", out supportsVolume) && supportsVolume.ValueKind == JsonValueKind.False)
+                            state.SupportsVolume = false;
                         JsonElement volume;
                         if (device.TryGetProperty("volume_percent", out volume) && volume.ValueKind == JsonValueKind.Number)
                             state.Volume = volume.GetInt32();
@@ -244,6 +247,7 @@ namespace LighterSpotify
                         if (error.ValueKind == JsonValueKind.String) return error.GetString();
                         string reason = GetString(error, "reason");
                         if (reason == "NO_ACTIVE_DEVICE") return "No active device. Press the speaker button to play on this PC.";
+                        if (reason == "VOLUME_CONTROL_DISALLOW") return "This device doesn't allow volume control from here.";
                         if (reason == "PREMIUM_REQUIRED") return "Spotify Premium is required.";
                         string message = GetString(error, "message");
                         if (!string.IsNullOrEmpty(message)) return message;

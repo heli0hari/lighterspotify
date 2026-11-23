@@ -223,6 +223,7 @@ namespace LighterSpotify
             DurationText.Text = FormatTime(current.DurationMs);
             if (!userSeeking) SetProgress(current.ProgressMs);
             if (!userVolume && current.Volume >= 0) VolumeSlider.Value = current.Volume;
+            SetVolumeEnabled(current.SupportsVolume);
             SetArt(current.ImageUrl);
             SetTrayText(current.Title + " - " + current.Artists);
         }
@@ -237,6 +238,14 @@ namespace LighterSpotify
             DeviceText.Text = "";
             SetArt(null);
             LoginPanel.Visibility = Visibility.Visible;
+        }
+
+        // Some devices (e.g. phones) don't allow remote volume control
+        void SetVolumeEnabled(bool enabled)
+        {
+            VolumeSlider.IsEnabled = enabled;
+            VolumePanel.Opacity = enabled ? 1.0 : 0.35;
+            VolumePanel.ToolTip = enabled ? null : "Volume can't be changed on this device from here";
         }
 
         void SetProgress(int ms)

@@ -75,7 +75,7 @@
                     <Button Style="{StaticResource IconButton}" Content="&#xE893;" Width="34" Height="34" FontSize="14" ToolTip="Next" Click="Next_Click"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel x:Name="VolumePanel" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent">
                     <TextBlock Text="&#xE767;" FontFamily="{StaticResource Icons}" FontSize="12" Foreground="{StaticResource TextSub}"
                                VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <Slider x:Name="VolumeSlider" Width="64" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="100" Value="50"/>
