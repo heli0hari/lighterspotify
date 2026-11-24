@@ -78,11 +78,21 @@ Drag anywhere on the window to move it.
 
 Tick **Start with Windows** in Settings and click **Save**. The app then starts hidden in the tray when you log in. It uses your account's Run registry key, so no admin rights are needed.
 
-There's no installer, so the app lives in the `publish` folder. To add it to the Start menu, run this once:
-```powershell
-$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:APPDATA\Microsoft\Windows\Start Menu\Programs\LighterSpotify.lnk")
-$s.TargetPath = "$HOME\lighterspotify\publish\LighterSpotify.exe"; $s.Save()
-```
+There's no installer, so the app lives in the `publish` folder. Each time it runs, it creates or refreshes its own Start menu shortcut, so after the first launch you can find it by searching "LighterSpotify" in Start.
+
+## Troubleshooting playback
+
+If the PC shows up as a speaker but songs skip without any sound, librespot can't load the audio. This usually happens when Spotify changes something on its servers.
+
+1. Look at `%AppData%\LighterSpotify\librespot.log`. The app also shows the latest librespot error in its status line.
+2. Update librespot, then restart the app:
+   ```powershell
+   cargo install librespot --locked --force
+   ```
+3. If the latest release still fails, try the development version, which often has the fix first:
+   ```powershell
+   cargo install --git https://github.com/librespot-org/librespot --branch dev --locked --force librespot
+   ```
 
 ## Notes
 

@@ -116,8 +116,15 @@ namespace LighterSpotify
                 WindowState = WindowState.Normal;
             }
 
-            // Keep the startup entry pointing at this exe, in case it moved
+            // Keep the startup entry and Start menu shortcut pointing at this exe
             if (Autostart.IsEnabled()) Autostart.Enable();
+            StartMenuShortcut.Ensure();
+
+            // Surface librespot errors (e.g. tracks failing to load) in the status line
+            librespot.ErrorLogged += line =>
+            {
+                Dispatcher.BeginInvoke(new Action(() => ShowStatus("librespot: " + ShortError(line) + " (see librespot.log)")));
+            };
 
             mediaSession.PlayPressed += async () => await SetPlayingAsync(true);
             mediaSession.PausePressed += async () => await SetPlayingAsync(false);
@@ -386,6 +393,14 @@ namespace LighterSpotify
             settings.Locked = !settings.Locked;
             settings.Save();
             ApplyLockState();
+        }
+
+        // "[2026-...Z ERROR librespot_playback::player] Unable to load..." -> "Unable to load..."
+        static string ShortError(string line)
+        {
+            int end = line.IndexOf("] ");
+            string text = end >= 0 ? line.Substring(end + 2) : line;
+            return text.Length > 120 ? text.Substring(0, 120) + "..." : text;
         }
 
         static string FormatTime(int ms)

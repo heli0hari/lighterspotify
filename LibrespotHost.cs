@@ -8,6 +8,16 @@ namespace LighterSpotify
     {
         Process process;
         bool waitingForLogin;
+        StreamWriter log;
+        object logLock = new object();
+
+        // Raised (on a background thread) when librespot prints an error
+        public event Action<string> ErrorLogged;
+
+        public static string LogFile
+        {
+            get { return Path.Combine(Settings.Folder, "librespot.log"); }
+        }
 
         static string CacheFolder
         {
@@ -51,8 +61,11 @@ namespace LighterSpotify
             }
             else
             {
+                // Hidden: capture its output into librespot.log so problems can be diagnosed
                 info.UseShellExecute = false;
                 info.CreateNoWindow = true;
+                info.RedirectStandardOutput = true;
+                info.RedirectStandardError = true;
             }
 
             try
@@ -62,6 +75,15 @@ namespace LighterSpotify
             catch (Exception ex)
             {
                 return "Couldn't start librespot: " + ex.Message;
+            }
+
+            if (!firstLogin)
+            {
+                OpenLog();
+                process.OutputDataReceived += OnOutput;
+                process.ErrorDataReceived += OnOutput;
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
             }
 
             waitingForLogin = firstLogin;
@@ -85,6 +107,43 @@ namespace LighterSpotify
             }
             catch { }
             process = null;
+            CloseLog();
+        }
+
+        void OpenLog()
+        {
+            lock (logLock)
+            {
+                try
+                {
+                    CloseLog();
+                    log = new StreamWriter(LogFile, false);
+                    log.AutoFlush = true;
+                }
+                catch
+                {
+                    log = null;
+                }
+            }
+        }
+
+        void CloseLog()
+        {
+            lock (logLock)
+            {
+                if (log != null) log.Dispose();
+                log = null;
+            }
+        }
+
+        void OnOutput(object sender, DataReceivedEventArgs e)
+        {
+            if (e.Data == null) return;
+            lock (logLock)
+            {
+                if (log != null) log.WriteLine(e.Data);
+            }
+            if (e.Data.Contains(" ERROR ") && ErrorLogged != null) ErrorLogged(e.Data);
         }
 
         static string FindExe(string configured)
